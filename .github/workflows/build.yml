@@ -28,7 +28,6 @@ jobs:
             rm -f pubspec.backup.yaml
           fi
 
-          # Ajusta o build.gradle do app para compileSdk 34 e minSdk 21
           sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 34/g' android/app/build.gradle 2>/dev/null || true
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle 2>/dev/null || true
           sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle 2>/dev/null || true
@@ -37,7 +36,6 @@ jobs:
           sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle 2>/dev/null || true
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
 
-          # Forca compileSdk 34 em todos os subprojetos e plugins (corrige o share_plus)
           cat << 'EOF' >> android/build.gradle
 
           subprojects {
@@ -51,8 +49,10 @@ jobs:
           }
           EOF
 
-      - name: Baixar pacotes
-        run: flutter pub get
+      - name: Limpar cache antigo e baixar dependencias
+        run: |
+          flutter clean
+          flutter pub get
 
       - name: Compilar APK
         run: flutter build apk --release
