@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -87,6 +88,14 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
   Future<Uint8List> _gerarDocumentoPdf() async {
     final pdf = pw.Document();
 
+    // Carrega a imagem do logo dos assets de forma segura
+    pw.MemoryImage? imageLogo;
+    try {
+      final ByteData logoBytes = await rootBundle.load('assets/logo.png');
+      final Uint8List logoData = logoBytes.buffer.asUint8List();
+      imageLogo = pw.MemoryImage(logoData);
+    } catch (_) {}
+
     final numeroNota = _numeroNotaController.text.trim();
     final data = _dataController.text.trim();
     final nome = _nomeController.text.trim();
@@ -122,29 +131,37 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
+                // CABEÇALHO COM LOGO
                 pw.Container(
                   padding: const pw.EdgeInsets.all(8),
                   decoration: const pw.BoxDecoration(
                     border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1)),
                   ),
                   child: pw.Row(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
-                      pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColor.fromHex('#6E6E6E'),
-                          borderRadius: pw.BorderRadius.circular(6),
-                        ),
-                        child: pw.Text(
-                          'Suporte Técnico',
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 16,
-                            fontWeight: pw.FontWeight.bold,
+                      if (imageLogo != null)
+                        pw.Container(
+                          width: 60,
+                          height: 60,
+                          child: pw.Image(imageLogo, fit: pw.BoxFit.contain),
+                        )
+                      else
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColor.fromHex('#6E6E6E'),
+                            borderRadius: pw.BorderRadius.circular(6),
+                          ),
+                          child: pw.Text(
+                            'Suporte Técnico',
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
                       pw.SizedBox(width: 14),
                       pw.Expanded(
                         child: pw.Column(
@@ -161,6 +178,8 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                     ],
                   ),
                 ),
+
+                // TÍTULO E NÚMERO
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: const pw.BoxDecoration(
@@ -180,6 +199,8 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                     ],
                   ),
                 ),
+
+                // DADOS DO CLIENTE
                 pw.Container(
                   padding: const pw.EdgeInsets.all(8),
                   decoration: const pw.BoxDecoration(
@@ -198,360 +219,4 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                           pw.Text('Nº: $numeroEnd', style: const pw.TextStyle(fontSize: 10)),
                         ],
                       ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        children: [
-                          pw.Expanded(flex: 2, child: pw.Text('Cidade: $cidade', style: const pw.TextStyle(fontSize: 10))),
-                          pw.Expanded(flex: 1, child: pw.Text('Estado: $estado', style: const pw.TextStyle(fontSize: 10))),
-                          pw.Expanded(flex: 1, child: pw.Text('CEP: $cep', style: const pw.TextStyle(fontSize: 10))),
-                        ],
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        children: [
-                          pw.Expanded(child: pw.Text('CNPJ/CPF: $cnpjCpf', style: const pw.TextStyle(fontSize: 10))),
-                          pw.Expanded(child: pw.Text('Insc. Est.: $inscEst', style: const pw.TextStyle(fontSize: 10))),
-                        ],
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        children: [
-                          pw.Expanded(child: pw.Text('Fone: $fone', style: const pw.TextStyle(fontSize: 10))),
-                          pw.Expanded(child: pw.Text('Cond. pgto.: $condPgto', style: const pw.TextStyle(fontSize: 10))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                pw.Container(
-                  decoration: const pw.BoxDecoration(
-                    border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1)),
-                  ),
-                  child: pw.Row(
-                    children: [
-                      pw.Container(
-                        width: 55,
-                        padding: const pw.EdgeInsets.all(5),
-                        alignment: pw.Alignment.center,
-                        decoration: const pw.BoxDecoration(border: pw.Border(right: pw.BorderSide(color: PdfColors.black, width: 1))),
-                        child: pw.Text('Quant.', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      ),
-                      pw.Expanded(
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.all(5),
-                          alignment: pw.Alignment.center,
-                          decoration: const pw.BoxDecoration(border: pw.Border(right: pw.BorderSide(color: PdfColors.black, width: 1))),
-                          child: pw.Text('Descrição dos Serviços', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                        ),
-                      ),
-                      pw.Container(
-                        width: 90,
-                        padding: const pw.EdgeInsets.all(5),
-                        alignment: pw.Alignment.center,
-                        child: pw.Text('VALOR R\$', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
-                pw.Expanded(
-                  child: pw.Column(
-                    children: List.generate(12, (index) {
-                      final item = index < listaItensPdf.length ? listaItensPdf[index] : null;
-                      return pw.Expanded(
-                        child: pw.Container(
-                          decoration: const pw.BoxDecoration(
-                            border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 0.8)),
-                          ),
-                          child: pw.Row(
-                            children: [
-                              pw.Container(
-                                width: 55,
-                                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
-                                alignment: pw.Alignment.center,
-                                decoration: const pw.BoxDecoration(border: pw.Border(right: pw.BorderSide(color: PdfColors.black, width: 1))),
-                                child: pw.Text(item?['quant'] ?? '', style: const pw.TextStyle(fontSize: 9)),
-                              ),
-                              pw.Expanded(
-                                child: pw.Container(
-                                  padding: const pw.EdgeInsets.symmetric(horizontal: 6),
-                                  alignment: pw.Alignment.centerLeft,
-                                  decoration: const pw.BoxDecoration(border: pw.Border(right: pw.BorderSide(color: PdfColors.black, width: 1))),
-                                  child: pw.Text(item?['desc'] ?? '', style: const pw.TextStyle(fontSize: 9)),
-                                ),
-                              ),
-                              pw.Container(
-                                width: 90,
-                                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
-                                alignment: pw.Alignment.centerRight,
-                                child: pw.Text(item != null && item['valor']!.isNotEmpty ? 'R\$ ${item['valor']}' : '', style: const pw.TextStyle(fontSize: 9)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.end,
-                    children: [
-                      pw.Text('TOTAL', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(width: 10),
-                      pw.Container(
-                        width: 100,
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.black, width: 1),
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        alignment: pw.Alignment.centerRight,
-                        child: pw.Text('R\$ $totalFormatado', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-
-    return pdf.save();
-  }
-
-  Future<void> _compartilharPdf() async {
-    final pdfBytes = await _gerarDocumentoPdf();
-    await Printing.sharePdf(
-      bytes: pdfBytes,
-      filename: 'Nota_Servico_${_numeroNotaController.text}.pdf',
-    );
-  }
-
-  Future<void> _imprimirOuVisualizarPdf() async {
-    final pdfBytes = await _gerarDocumentoPdf();
-    await Printing.layoutPdf(onLayout: (format) async => pdfBytes);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nota de Prestação de Serviços'),
-        backgroundColor: const Color(0xFF2E7D32),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _numeroNotaController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Nº da Nota', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _dataController,
-                    decoration: const InputDecoration(labelText: 'Data da Emissão', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _nomeController,
-              decoration: const InputDecoration(labelText: 'Nome do Cliente', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _enderecoController,
-                    decoration: const InputDecoration(labelText: 'Endereço', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: TextField(
-                    controller: _numeroEnderecoController,
-                    decoration: const InputDecoration(labelText: 'Nº', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _cidadeController,
-                    decoration: const InputDecoration(labelText: 'Cidade', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: TextField(
-                    controller: _estadoController,
-                    decoration: const InputDecoration(labelText: 'Estado', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _cepController,
-                    decoration: const InputDecoration(labelText: 'CEP', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _cnpjCpfController,
-                    decoration: const InputDecoration(labelText: 'CNPJ / CPF', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _inscEstController,
-                    decoration: const InputDecoration(labelText: 'Insc. Est.', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _foneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Fone', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _condPgtoController,
-                    decoration: const InputDecoration(labelText: 'Cond. Pgto.', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Tabela de Serviços', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                TextButton.icon(
-                  onPressed: () => _adicionarItem(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar Linha'),
-                ),
-              ],
-            ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: itens.length,
-              itemBuilder: (ctx, idx) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 50,
-                        child: TextField(
-                          controller: itens[idx]['quant'],
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Qtd', isDense: true, border: OutlineInputBorder()),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: itens[idx]['desc'],
-                          decoration: const InputDecoration(labelText: 'Descrição do Serviço', isDense: true, border: OutlineInputBorder()),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      SizedBox(
-                        width: 85,
-                        child: TextField(
-                          controller: itens[idx]['valor'],
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Valor R\$', isDense: true, border: OutlineInputBorder()),
-                          onChanged: (_) => setState(() {}),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removerItem(idx),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(4)),
-              alignment: Alignment.centerRight,
-              child: Text(
-                'TOTAL: R\$ ${_calcularTotal().toStringAsFixed(2).replaceAll('.', ',')}',
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: _imprimirOuVisualizarPdf,
-                    icon: const Icon(Icons.print),
-                    label: const Text('Visualizar / Imprimir'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: _compartilharPdf,
-                    icon: const Icon(Icons.share),
-                    label: const Text('Compartilhar PDF'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
+                      pw.
