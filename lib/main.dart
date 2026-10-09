@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -625,7 +624,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
 }
 
 // -------------------------------------------------------------
-// TELA COMPLETA DE EMISSÃO DA NOTA DE SERVIÇO (PDF IDÊNTICO AO PAPEL)
+// TELA DE EMISSÃO DA NOTA DE SERVIÇO (PDF IDÊNTICO AO TALÃO)
 // -------------------------------------------------------------
 class TelaNotaServico extends StatefulWidget {
   final String nomeInicial;
@@ -740,7 +739,7 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
-                // CABEÇALHO DA EMPRESA
+                // CABEÇALHO
                 pw.Container(
                   padding: const pw.EdgeInsets.all(8),
                   decoration: const pw.BoxDecoration(
@@ -781,7 +780,7 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                   ),
                 ),
 
-                // TÍTULO DA NOTA E NÚMERO VERMELHO
+                // TÍTULO E NÚMERO
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: const pw.BoxDecoration(
@@ -802,7 +801,7 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                   ),
                 ),
 
-                // CAMPOS DO CLIENTE COM LINHAS PONTILHADAS
+                // DADOS DO CLIENTE
                 pw.Container(
                   padding: const pw.EdgeInsets.all(8),
                   decoration: const pw.BoxDecoration(
@@ -847,7 +846,7 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                   ),
                 ),
 
-                // TABELA DE ITENS (CABECALHO)
+                // TABELA (CABEÇALHO)
                 pw.Container(
                   decoration: const pw.BoxDecoration(
                     border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1)),
@@ -879,7 +878,7 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                   ),
                 ),
 
-                // LINHAS DA TABELA (Exatamente 12 linhas como no canhoto impresso)
+                // LINHAS DA TABELA (12 linhas fixas)
                 pw.Expanded(
                   child: pw.Column(
                     children: List.generate(12, (index) {
@@ -920,7 +919,7 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                   ),
                 ),
 
-                // RODAPÉ TOTAL
+                // TOTAL
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   child: pw.Row(
@@ -953,13 +952,9 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
 
   Future<void> _compartilharPdf() async {
     final pdfBytes = await _gerarDocumentoPdf();
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/Nota_Servico_${_numeroNotaController.text}.pdf');
-    await file.writeAsBytes(pdfBytes);
-
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Nota de Prestação de Serviços - LFL Informática',
+    await Printing.sharePdf(
+      bytes: pdfBytes,
+      filename: 'Nota_Servico_${_numeroNotaController.text}.pdf',
     );
   }
 
