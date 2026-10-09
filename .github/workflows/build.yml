@@ -28,6 +28,12 @@ jobs:
             rm -f pubspec.backup.yaml
           fi
 
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Atualizar Icone do Aplicativo
+        run: flutter pub run flutter_launcher_icons
+
       - name: Gerar chave de assinatura oficial LFL
         run: |
           keytool -genkeypair -v \
@@ -39,9 +45,6 @@ jobs:
             -storepass senhaSeguraLfl2026 \
             -keypass senhaSeguraLfl2026 \
             -dname "CN=Lysandro Luiz, OU=Suporte, O=LFL Informatica, L=Curitiba, ST=PR, C=BR"
-
-      - name: Instalar dependencias
-        run: flutter pub get
 
       - name: Compilar APK
         run: flutter build apk --release
