@@ -1,0 +1,42 @@
+name: Gerar Executavel Windows
+on: [push]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Habilitar suporte a desktop Windows
+        run: flutter config --enable-windows-desktop
+
+      - name: Gerar arquivos nativos Windows se necessario
+        run: |
+          if (-not (Test-Path "windows")) {
+            Copy-Item pubspec.yaml pubspec.backup.yaml
+            flutter create --org com.lfl --platforms=windows .
+            Copy-Item pubspec.backup.yaml pubspec.yaml
+            Remove-Item pubspec.backup.yaml
+          }
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Compilar versao de Release para Windows
+        run: flutter build windows --release
+
+      - name: Compactar executavel e DLLs
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath App-LFL-Informatica-Windows.zip
+
+      - name: Guardar executavel Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: App-LFL-Informatica-Windows
+          path: App-LFL-Informatica-Windows.zip
