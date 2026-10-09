@@ -19,19 +19,21 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Inicializar e ajustar configuracoes Android
+      - name: Inicializar estrutura Android sem sobrescrever configuracoes
         run: |
           if [ ! -d "android" ]; then
+            cp pubspec.yaml pubspec.backup.yaml
             flutter create --org com.lfl .
+            cp pubspec.backup.yaml pubspec.yaml
+            rm -f pubspec.backup.yaml
           fi
-          # Ajusta o minSdkVersion para 21 (necessario para printing e share_plus)
           sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle 2>/dev/null || true
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
 
-      - name: Instalar dependencias
+      - name: Baixar pacotes
         run: flutter pub get
 
-      - name: Compilar APK Release
+      - name: Compilar APK
         run: flutter build apk --release
 
       - name: Guardar APK
