@@ -19,7 +19,7 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Inicializar estrutura Android e ajustar SDK 34
+      - name: Configurar estrutura Android
         run: |
           if [ ! -d "android" ]; then
             cp pubspec.yaml pubspec.backup.yaml
@@ -28,28 +28,21 @@ jobs:
             rm -f pubspec.backup.yaml
           fi
 
-          sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 34/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 34/g' android/app/build.gradle 2>/dev/null || true
+          # Ajustes para build.gradle tradicional (Groovy)
+          if [ -f "android/app/build.gradle" ]; then
+            sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 34/g' android/app/build.gradle || true
+            sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle || true
+            sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle || true
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
+          fi
 
-          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
+          # Ajustes para build.gradle.kts (Kotlin Script)
+          if [ -f "android/app/build.gradle.kts" ]; then
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle.kts || true
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle.kts || true
+          fi
 
-          cat << 'EOF' >> android/build.gradle
-
-          subprojects {
-              afterEvaluate { project ->
-                  if (project.hasProperty("android")) {
-                      android {
-                          compileSdkVersion 34
-                      }
-                  }
-              }
-          }
-          EOF
-
-      - name: Limpar cache antigo e baixar dependencias
+      - name: Limpar e baixar pacotes
         run: |
           flutter clean
           flutter pub get
