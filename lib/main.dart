@@ -48,6 +48,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
   final TextEditingController _dataController = TextEditingController();
   final TextEditingController _valorController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
+  final TextEditingController _obsController = TextEditingController();
 
   Map<String, double> opcoesServicos = {
     "Formatação": 100.00,
@@ -70,7 +71,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     final String path = p.join(dir.path, 'ordens_lfl.db');
     _db = await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS ordens (
@@ -81,7 +82,8 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
             data TEXT,
             valor TEXT,
             telefone TEXT,
-            status TEXT DEFAULT 'Pendente'
+            status TEXT DEFAULT 'Pendente',
+            obs TEXT
           )
         ''');
       },
@@ -89,6 +91,11 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
         if (oldVersion < 2) {
           try {
             await db.execute("ALTER TABLE ordens ADD COLUMN status TEXT DEFAULT 'Pendente'");
+          } catch (_) {}
+        }
+        if (oldVersion < 3) {
+          try {
+            await db.execute("ALTER TABLE ordens ADD COLUMN obs TEXT");
           } catch (_) {}
         }
       },
@@ -230,11 +237,52 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     );
   }
 
+  void _abrirJanelaObservacoes() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Observações do Equipamento'),
+          content: TextField(
+            controller: _obsController,
+            maxLines: 4,
+            style: const TextStyle(color: Colors.black),
+            decoration: const InputDecoration(
+              hintText: 'Ex.: marcas na carcaça, sem carregador, ecrã com risco...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _obsController.clear();
+                setState(() {});
+                Navigator.pop(ctx);
+              },
+              child: const Text('Limpar', style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1976D2),
+              ),
+              onPressed: () {
+                setState(() {});
+                Navigator.pop(ctx);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _gerarOrdem() async {
     final nome = _nomeController.text.trim();
     final telefone = _telefoneController.text.trim();
     final data = _dataController.text.trim();
     final valor = _valorController.text.trim();
+    final obs = _obsController.text.trim();
     final servicosTexto = servicosSelecionados.isNotEmpty
         ? servicosSelecionados.join(', ')
         : 'Não especificado';
@@ -253,6 +301,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
         'valor': valor,
         'telefone': telefone,
         'status': 'Pendente',
+        'obs': obs,
       });
       numeroOrdem = 5049 + idGerado;
     }
@@ -262,7 +311,13 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
       numeroLimpo = '55$numeroLimpo';
     }
 
-    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n📋 *OS N°:* $numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
+    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n📋 *OS N°:* $numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto';
+
+    if (obs.isNotEmpty) {
+      mensagem += '\n📝 *Obs:* $obs';
+    }
+
+    mensagem += '\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
 
     if (tipoSelecionado == 'Ordem de Serviço') {
       mensagem += '\n\n⭐ *Avalie o nosso atendimento:* Sua opinião é muito importante para nós!\ng.page/r/CUrzNhkZxEFAEAE/review';
@@ -298,12 +353,12 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
               List<Map<String, dynamic>> dados;
               if (termo.isNotEmpty) {
                 dados = await _db!.rawQuery(
-                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone FROM ordens WHERE nome LIKE ? ORDER BY id DESC',
+                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone, obs FROM ordens WHERE nome LIKE ? ORDER BY id DESC',
                   ['%$termo%'],
                 );
               } else {
                 dados = await _db!.rawQuery(
-                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone FROM ordens ORDER BY id DESC LIMIT 20',
+                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone, obs FROM ordens ORDER BY id DESC LIMIT 20',
                 );
               }
               setModalState(() {
@@ -392,6 +447,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                 final numExibicao = 5049 + id;
                                 final status = r['status']?.toString() ?? 'Pendente';
                                 final bool isFinalizada = status == 'Finalizada';
+                                final obsDb = r['obs']?.toString() ?? '';
 
                                 return Card(
                                   color: isFinalizada ? const Color(0xFF1B4D2E) : const Color(0xFF333333),
@@ -399,11 +455,11 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     title: Text(
-                                      'OS N°: $numExibicao | ${r['nome']}',
+                                      'OS N°: $numExibicao |${r['nome']}',
                                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                     ),
                                     subtitle: Text(
-                                      '${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']} | Serviços: ${r['servicos']}\nEstado: $status',
+                                      '${r['tipo']} | Data: ${r['data']}\nValor:${r['valor']} | Serviços: ${r['servicos']}${obsDb.isNotEmpty ? "\nObs: $obsDb" : ""}\nEstado: $status',
                                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                                     ),
                                     trailing: Icon(
@@ -458,7 +514,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -531,6 +587,27 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                       ? '${servicosSelecionados.length} serviço(s) selecionado(s)'
                       : 'Selecionar Serviços',
                   style: const TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _obsController.text.trim().isNotEmpty
+                      ? const Color(0xFF455A64)
+                      : const Color(0xFFE5E5E5),
+                  foregroundColor: _obsController.text.trim().isNotEmpty
+                      ? Colors.white
+                      : Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaObservacoes,
+                icon: const Icon(Icons.note_alt_outlined),
+                label: Text(
+                  _obsController.text.trim().isNotEmpty
+                      ? 'Observações: "${_obsController.text.trim()}"'
+                      : 'Adicionar Observações',
+                  style: const TextStyle(fontSize: 15),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 12),
@@ -607,7 +684,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                   style: TextStyle(fontSize: 15),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 25),
               const Center(
                 child: Text(
                   'Desenvolvido por Lysandro Luiz',
@@ -1027,159 +1104,3 @@ class _TelaNotaServicoState extends State<TelaNotaServico> {
                     controller: _cidadeController,
                     decoration: const InputDecoration(labelText: 'Cidade', border: OutlineInputBorder()),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: TextField(
-                    controller: _estadoController,
-                    decoration: const InputDecoration(labelText: 'Estado', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _cepController,
-                    decoration: const InputDecoration(labelText: 'CEP', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _cnpjCpfController,
-                    decoration: const InputDecoration(labelText: 'CNPJ / CPF', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _inscEstController,
-                    decoration: const InputDecoration(labelText: 'Insc. Est.', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _foneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Fone', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _condPgtoController,
-                    decoration: const InputDecoration(labelText: 'Cond. Pgto.', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Tabela de Serviços', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                TextButton.icon(
-                  onPressed: () => _adicionarItem(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar Linha'),
-                ),
-              ],
-            ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: itens.length,
-              itemBuilder: (ctx, idx) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 50,
-                        child: TextField(
-                          controller: itens[idx]['quant'],
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Qtd', isDense: true, border: OutlineInputBorder()),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: itens[idx]['desc'],
-                          decoration: const InputDecoration(labelText: 'Descrição do Serviço', isDense: true, border: OutlineInputBorder()),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      SizedBox(
-                        width: 85,
-                        child: TextField(
-                          controller: itens[idx]['valor'],
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Valor R\$', isDense: true, border: OutlineInputBorder()),
-                          onChanged: (_) => setState(() {}),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removerItem(idx),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(4)),
-              alignment: Alignment.centerRight,
-              child: Text(
-                'TOTAL: R\$ ${_calcularTotal().toStringAsFixed(2).replaceAll('.', ',')}',
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: _imprimirOuVisualizarPdf,
-                    icon: const Icon(Icons.print),
-                    label: const Text('Visualizar / Imprimir'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: _compartilharPdf,
-                    icon: const Icon(Icons.share),
-                    label: const Text('Compartilhar PDF'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
