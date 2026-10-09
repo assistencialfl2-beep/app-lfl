@@ -19,6 +19,12 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Inicializar estrutura nativa se necessario
+        run: |
+          if [ ! -d "android" ]; then
+            flutter create --org com.lfl .
+          fi
+
       - name: Instalar dependencias
         run: flutter pub get
 
