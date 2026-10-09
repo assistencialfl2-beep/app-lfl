@@ -20,19 +20,19 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Instalar dependencias do sistema
+    - name: Instalar dependencias do Linux
       run: |
         sudo apt-get update
         sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev build-essential
 
-    - name: Instalar Buildozer e ferramentas compativeis
+    - name: Instalar ferramentas Python compativeis
       run: |
         python -m pip install --upgrade pip==23.3.2 setuptools==69.0.0
         pip install "Cython<3.0" virtualenv
         pip install git+https://github.com/kivy/buildozer.git@master
         pip install git+https://github.com/kivy/python-for-android.git@develop
 
-    - name: Criar configuracao buildozer.spec
+    - name: Criar configuracao buildozer.spec limpa
       run: |
         cat << 'EOF' > buildozer.spec
         [app]
@@ -55,7 +55,7 @@ jobs:
         EOF
 
     - name: Compilar APK
-      run: yes | buildozer -v android debug
+      run: buildozer -v android debug
 
     - name: Guardar APK
       uses: actions/upload-artifact@v4
