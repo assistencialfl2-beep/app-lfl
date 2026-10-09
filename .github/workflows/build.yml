@@ -28,14 +28,36 @@ jobs:
             rm -f pubspec.backup.yaml
           fi
 
+      - name: Gerar chave de assinatura oficial LFL
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/lfl_key.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -alias lflkey \
+            -storepass senhaSeguraLfl2026 \
+            -keypass senhaSeguraLfl2026 \
+            -dname "CN=Lysandro Luiz, OU=Suporte, O=LFL Informatica, L=Curitiba, ST=PR, C=BR"
+
       - name: Instalar dependencias
         run: flutter pub get
 
       - name: Compilar APK
         run: flutter build apk --release
 
+      - name: Assinar APK com certificado oficial
+        run: |
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks android/app/lfl_key.jks \
+            --ks-pass pass:senhaSeguraLfl2026 \
+            --ks-key-alias lflkey \
+            --key-pass pass:senhaSeguraLfl2026 \
+            --out build/app/outputs/flutter-apk/App-LFL-Informatica.apk \
+            build/app/outputs/flutter-apk/app-release.apk
+
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: App-LFL-Informatica
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/App-LFL-Informatica.apk
