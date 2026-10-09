@@ -8,7 +8,7 @@ jobs:
       - name: Checkout do repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Java
+      - name: Configurar Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -19,16 +19,19 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Inicializar estrutura nativa se necessario
+      - name: Inicializar e ajustar configuracoes Android
         run: |
           if [ ! -d "android" ]; then
             flutter create --org com.lfl .
           fi
+          # Ajusta o minSdkVersion para 21 (necessario para printing e share_plus)
+          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle 2>/dev/null || true
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
 
       - name: Instalar dependencias
         run: flutter pub get
 
-      - name: Compilar APK
+      - name: Compilar APK Release
         run: flutter build apk --release
 
       - name: Guardar APK
