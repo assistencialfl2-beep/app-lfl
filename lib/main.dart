@@ -1,14 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'nota_servico.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,7 +138,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                 });
                               },
                               child: Text(
-                                '${entry.key} - R\$$precoFormatado',
+                                '${entry.key} - R\$ $precoFormatado',
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ),
@@ -455,11 +452,11 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     title: Text(
-                                      'OS N°: $numExibicao \vert{}${r['nome']}',
+                                      'OS N°: $numExibicao | ${r['nome']}',
                                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                     ),
                                     subtitle: Text(
-                                      '${r['tipo']} | Data: ${r['data']}\nValor:${r['valor']} | Serviços: ${r['servicos']}${obsDb.isNotEmpty ? "\nObs: $obsDb" : ""}\nEstado: $status',
+                                      '${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']} | Serviços: ${r['servicos']}${obsDb.isNotEmpty ? "\nObs: $obsDb" : ""}\nEstado: $status',
                                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                                     ),
                                     trailing: Icon(
@@ -573,3 +570,133 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                 decoration: const InputDecoration(
                   hintText: 'Nome do Cliente',
                   filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE5E5E5),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaServicos,
+                child: Text(
+                  servicosSelecionados.isNotEmpty
+                      ? '${servicosSelecionados.length} serviço(s) selecionado(s)'
+                      : 'Selecionar Serviços',
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _obsController.text.trim().isNotEmpty
+                      ? const Color(0xFF455A64)
+                      : const Color(0xFFE5E5E5),
+                  foregroundColor: _obsController.text.trim().isNotEmpty
+                      ? Colors.white
+                      : Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaObservacoes,
+                icon: const Icon(Icons.note_alt_outlined),
+                label: Text(
+                  _obsController.text.trim().isNotEmpty
+                      ? 'Observações: "${_obsController.text.trim()}"'
+                      : 'Adicionar Observações',
+                  style: const TextStyle(fontSize: 15),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _dataController,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _valorController,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  hintText: 'Valor Total (R\$)',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _telefoneController,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  hintText: 'Telefone (com DDD, sem +)',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _gerarOrdem,
+                child: const Text(
+                  'Gerar Ordem e Enviar WhatsApp',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirTelaNotaServico,
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                label: const Text(
+                  'Emitir Nota de Serviços (PDF)',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB0B0B0),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaBusca,
+                child: const Text(
+                  'Buscar Ordem/Orçamento',
+                  style: TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 25),
+              const Center(
+                child: Text(
+                  'Desenvolvido por Lysandro Luiz',
+                  style: TextStyle(color: Color(0xFF666666), fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
