@@ -66,7 +66,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     final String path = p.join(dir.path, 'ordens_lfl.db');
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE IF NOT EXISTS ordens (
@@ -76,9 +76,17 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
             servicos TEXT,
             data TEXT,
             valor TEXT,
-            telefone TEXT
+            telefone TEXT,
+            status TEXT DEFAULT 'Pendente'
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          try {
+            await db.execute("ALTER TABLE ordens ADD COLUMN status TEXT DEFAULT 'Pendente'");
+          } catch (_) {}
+        }
       },
     );
   }
@@ -227,15 +235,20 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
         ? servicosSelecionados.join(', ')
         : 'Não especificado';
 
+    if (_db == null) {
+      await _iniciarBanco();
+    }
+
     int numeroOrdem = 5050;
     if (_db != null) {
       final idGerado = await _db!.insert('ordens', {
-        'nome': nome,
+        'nome': nome.isEmpty ? 'Cliente sem nome' : nome,
         'tipo': tipoSelecionado,
         'servicos': servicosTexto,
         'data': data,
         'valor': valor,
         'telefone': telefone,
+        'status': 'Pendente',
       });
       numeroOrdem = 5049 + idGerado;
     }
@@ -245,7 +258,12 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
       numeroLimpo = '55$numeroLimpo';
     }
 
-    final mensagem = 'Olá, *$nome*!\n\nAqui estão os detalhes:\n🔢 *Nº:* #$numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
+    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n🔢 *Nº:* #$numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
+
+    if (tipoSelecionado == 'Ordem de Serviço') {
+      mensagem += '\n\n⭐ *Avalie o nosso atendimento:* Sua opinião é muito importante para nós!\nhttps://g.page/r/CUrzNhkZxEFAEAE/review';
+    }
+
     final textoCodificado = Uri.encodeComponent(mensagem);
 
     if (numeroLimpo.isNotEmpty) {
@@ -254,13 +272,20 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     }
   }
 
-  void _abrirJanelaBusca() {
+  void _abrirJanelaBusca() async {
+    if (_db == null) {
+      await _iniciarBanco();
+    }
+
     final TextEditingController buscaController = TextEditingController();
-    List<Map<String, dynamic>> resultados = [];
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
       builder: (ctx) {
+        List<Map<String, dynamic>> resultados = [];
+
         return StatefulBuilder(
           builder: (context, setModalState) {
             void buscar() async {
@@ -269,12 +294,12 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
               List<Map<String, dynamic>> dados;
               if (termo.isNotEmpty) {
                 dados = await _db!.rawQuery(
-                  'SELECT id, tipo, nome, data, valor, servicos FROM ordens WHERE nome LIKE ? ORDER BY id DESC',
+                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone FROM ordens WHERE nome LIKE ? ORDER BY id DESC',
                   ['%$termo%'],
                 );
               } else {
                 dados = await _db!.rawQuery(
-                  'SELECT id, tipo, nome, data, valor, servicos FROM ordens ORDER BY id DESC LIMIT 15',
+                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone FROM ordens ORDER BY id DESC LIMIT 20',
                 );
               }
               setModalState(() {
@@ -282,11 +307,50 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
               });
             }
 
+            // Carrega imediatamente ao abrir a janela
+            if (resultados.isEmpty && buscaController.text.isEmpty) {
+              buscar();
+            }
+
+            void alternarStatus(int id, String statusAtual, String nomeCliente, String telefoneCliente) {
+              final novoStatus = (statusAtual == 'Finalizada') ? 'Pendente' : 'Finalizada';
+
+              showDialog(
+                context: context,
+                builder: (confirmCtx) => AlertDialog(
+                  title: Text(novoStatus == 'Finalizada' ? 'Finalizar Serviço' : 'Reabrir Serviço'),
+                  content: Text('Deseja marcar a ordem de "$nomeCliente" como $novoStatus?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(confirmCtx),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: novoStatus == 'Finalizada' ? Colors.green : Colors.orange,
+                      ),
+                      onPressed: () async {
+                        await _db!.update(
+                          'ordens',
+                          {'status': novoStatus},
+                          where: 'id = ?',
+                          whereArgs: [id],
+                        );
+                        Navigator.pop(confirmCtx);
+                        buscar();
+                      },
+                      child: Text(novoStatus == 'Finalizada' ? 'Finalizar' : 'Reabrir'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return AlertDialog(
               title: const Text('Histórico de Clientes'),
               content: SizedBox(
                 width: double.maxFinite,
-                height: 400,
+                height: 430,
                 child: Column(
                   children: [
                     Row(
@@ -300,6 +364,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                               isDense: true,
                               border: OutlineInputBorder(),
                             ),
+                            onSubmitted: (_) => buscar(),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -322,15 +387,30 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                 final r = resultados[index];
                                 final id = r['id'] as int? ?? 1;
                                 final numExibicao = 5049 + id;
+                                final status = r['status']?.toString() ?? 'Pendente';
+                                final bool isFinalizada = status == 'Finalizada';
+
                                 return Card(
-                                  color: const Color(0xFF333333),
+                                  color: isFinalizada ? const Color(0xFF1B4D2E) : const Color(0xFF333333),
                                   margin: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(10),
-                                    child: Text(
-                                      'Nº #$numExibicao | Cliente: ${r['nome']}\n${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    title: Text(
+                                      'Nº #$numExibicao | ${r['nome']}',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                     ),
+                                    subtitle: Text(
+                                      '${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']} | Serviços: ${r['servicos']}\nEstado: $status',
+                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                    trailing: Icon(
+                                      isFinalizada ? Icons.check_circle : Icons.pending_actions,
+                                      color: isFinalizada ? Colors.greenAccent : Colors.orangeAccent,
+                                      size: 28,
+                                    ),
+                                    onTap: () {
+                                      alternarStatus(id, status, r['nome']?.toString() ?? '', r['telefone']?.toString() ?? '');
+                                    },
                                   ),
                                 );
                               },
