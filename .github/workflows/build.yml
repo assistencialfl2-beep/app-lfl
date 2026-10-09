@@ -8,11 +8,11 @@ jobs:
       - name: Checkout do repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Java 17
+      - name: Configurar Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Configurar Flutter
         uses: subosito/flutter-action@v2
@@ -27,20 +27,6 @@ jobs:
             cp pubspec.backup.yaml pubspec.yaml
             rm -f pubspec.backup.yaml
           fi
-
-      - name: Ajustar versoes do SDK Android para 34
-        run: |
-          # Corrige ficheiros .gradle tradicionais
-          find android -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 34/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 34/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' {} +
-
-          # Corrige ficheiros .gradle.kts modernos
-          find android -name "build.gradle.kts" -type f -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} +
-          find android -name "build.gradle.kts" -type f -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' {} +
 
       - name: Instalar dependencias
         run: flutter pub get
