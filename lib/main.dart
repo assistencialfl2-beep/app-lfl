@@ -227,8 +227,9 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
         ? servicosSelecionados.join(', ')
         : 'Não especificado';
 
+    int numeroOrdem = 5050;
     if (_db != null) {
-      await _db!.insert('ordens', {
+      final idGerado = await _db!.insert('ordens', {
         'nome': nome,
         'tipo': tipoSelecionado,
         'servicos': servicosTexto,
@@ -236,6 +237,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
         'valor': valor,
         'telefone': telefone,
       });
+      numeroOrdem = 5049 + idGerado;
     }
 
     String numeroLimpo = telefone.replaceAll(RegExp(r'\D'), '');
@@ -243,7 +245,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
       numeroLimpo = '55$numeroLimpo';
     }
 
-    final mensagem = 'Olá, *$nome*!\n\nAqui estão os detalhes:\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
+    final mensagem = 'Olá, *$nome*!\n\nAqui estão os detalhes:\n🔢 *Nº:* #$numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
     final textoCodificado = Uri.encodeComponent(mensagem);
 
     if (numeroLimpo.isNotEmpty) {
@@ -267,12 +269,12 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
               List<Map<String, dynamic>> dados;
               if (termo.isNotEmpty) {
                 dados = await _db!.rawQuery(
-                  'SELECT tipo, nome, data, valor, servicos FROM ordens WHERE nome LIKE ? ORDER BY id DESC',
+                  'SELECT id, tipo, nome, data, valor, servicos FROM ordens WHERE nome LIKE ? ORDER BY id DESC',
                   ['%$termo%'],
                 );
               } else {
                 dados = await _db!.rawQuery(
-                  'SELECT tipo, nome, data, valor, servicos FROM ordens ORDER BY id DESC LIMIT 15',
+                  'SELECT id, tipo, nome, data, valor, servicos FROM ordens ORDER BY id DESC LIMIT 15',
                 );
               }
               setModalState(() {
@@ -318,13 +320,15 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                               itemCount: resultados.length,
                               itemBuilder: (context, index) {
                                 final r = resultados[index];
+                                final id = r['id'] as int? ?? 1;
+                                final numExibicao = 5049 + id;
                                 return Card(
                                   color: const Color(0xFF333333),
                                   margin: const EdgeInsets.symmetric(vertical: 4),
                                   child: Padding(
                                     padding: const EdgeInsets.all(10),
                                     child: Text(
-                                      'Cliente: ${r['nome']}\n${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']}',
+                                      'Nº #$numExibicao | Cliente: ${r['nome']}\n${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']}',
                                       style: const TextStyle(color: Colors.white, fontSize: 13),
                                     ),
                                   ),
