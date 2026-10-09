@@ -15,7 +15,7 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Configurar Python 3.11
+    - name: Configurar Python 3.11 no runner
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
@@ -25,14 +25,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev build-essential
 
-    - name: Instalar ferramentas Python compativeis
+    - name: Instalar ferramentas do Buildozer
       run: |
         python -m pip install --upgrade pip==23.3.2 setuptools==69.0.0
         pip install "Cython<3.0" virtualenv
         pip install git+https://github.com/kivy/buildozer.git@master
         pip install git+https://github.com/kivy/python-for-android.git@develop
 
-    - name: Criar configuracao buildozer.spec limpa
+    - name: Criar buildozer.spec fixando Python 3.11 no Android
       run: |
         cat << 'EOF' > buildozer.spec
         [app]
@@ -42,7 +42,10 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas
         version = 0.3.0
-        requirements = python3,kivy
+
+        # Fixa explicitamente o Python do APK no 3.11 para evitar cp314
+        requirements = python3==3.11.9,kivy
+
         orientation = portrait
         fullscreen = 0
         android.archs = arm64-v8a
