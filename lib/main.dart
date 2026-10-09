@@ -258,10 +258,11 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
       numeroLimpo = '55$numeroLimpo';
     }
 
-    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n🔢 *Nº:* #$numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
+    // Mensagem começando direto em "Olá, nome!" com "OS N°: [numero]"
+    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n📋 *OS N°:* $numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
 
     if (tipoSelecionado == 'Ordem de Serviço') {
-      mensagem += '\n\n⭐ *Avalie o nosso atendimento:* Sua opinião é muito importante para nós!\nhttps://g.page/r/CUrzNhkZxEFAEAE/review';
+      mensagem += '\n\n⭐ *Avalie o nosso atendimento:* Sua opinião é muito importante para nós!\ng.page/r/CUrzNhkZxEFAEAE/review';
     }
 
     final textoCodificado = Uri.encodeComponent(mensagem);
@@ -307,12 +308,11 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
               });
             }
 
-            // Carrega imediatamente ao abrir a janela
             if (resultados.isEmpty && buscaController.text.isEmpty) {
               buscar();
             }
 
-            void alternarStatus(int id, String statusAtual, String nomeCliente, String telefoneCliente) {
+            void alternarStatus(int id, String statusAtual, String nomeCliente) {
               final novoStatus = (statusAtual == 'Finalizada') ? 'Pendente' : 'Finalizada';
 
               showDialog(
@@ -396,7 +396,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     title: Text(
-                                      'Nº #$numExibicao | ${r['nome']}',
+                                      'OS N°: $numExibicao | ${r['nome']}',
                                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                     ),
                                     subtitle: Text(
@@ -409,7 +409,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                       size: 28,
                                     ),
                                     onTap: () {
-                                      alternarStatus(id, status, r['nome']?.toString() ?? '', r['telefone']?.toString() ?? '');
+                                      alternarStatus(id, status, r['nome']?.toString() ?? '');
                                     },
                                   ),
                                 );
