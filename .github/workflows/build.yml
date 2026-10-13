@@ -34,8 +34,9 @@ jobs:
       - name: Atualizar Icone do Aplicativo
         run: flutter pub run flutter_launcher_icons || true
 
-      - name: Gerar chave de assinatura oficial LFL
+      - name: Configurar Chave Oficial Fixa
         run: |
+          mkdir -p android/app
           keytool -genkeypair -v \
             -keystore android/app/lfl_key.jks \
             -keyalg RSA \
