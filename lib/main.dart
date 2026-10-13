@@ -143,7 +143,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                 });
                               },
                               child: Text(
-                                '${entry.key} - R\$ $precoFormatado',
+                                '${entry.key} - R\$$precoFormatado',
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ),
@@ -333,6 +333,35 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     }
   }
 
+  void _carregarOrdemParaEdicao(Map<String, dynamic> r) {
+    setState(() {
+      _nomeController.text = r['nome']?.toString() ?? '';
+      _telefoneController.text = r['telefone']?.toString() ?? '';
+      _dataController.text = r['data']?.toString() ?? '';
+      _valorController.text = r['valor']?.toString() ?? '';
+      _obsController.text = r['obs']?.toString() ?? '';
+      
+      final tipo = r['tipo']?.toString() ?? 'Ordem de Serviço';
+      if (tipo == 'Orçamento' || tipo == 'Ordem de Serviço') {
+        tipoSelecionado = tipo;
+      }
+
+      final servicosStr = r['servicos']?.toString() ?? '';
+      servicosSelecionados = servicosStr
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty && s != 'Não especificado')
+          .toList();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Ordem de "${r['nome']}" carregada para edição!'),
+        backgroundColor: Colors.green[700],
+      ),
+    );
+  }
+
   void _abrirJanelaBusca() async {
     if (_db == null) {
       await _iniciarBanco();
@@ -360,7 +389,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                 );
               } else {
                 dados = await _db!.rawQuery(
-                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone, obs FROM ordens ORDER BY id DESC LIMIT 20',
+                  'SELECT id, tipo, nome, data, valor, servicos, status, telefone, obs FROM ordens ORDER BY id DESC LIMIT 25',
                 );
               }
               setModalState(() {
@@ -406,11 +435,40 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
               );
             }
 
+            void confirmarApagar(int id, String nomeCliente) {
+              showDialog(
+                context: context,
+                builder: (delCtx) => AlertDialog(
+                  title: const Text('Apagar Registo'),
+                  content: Text('Tem certeza de que deseja apagar a ordem de "$nomeCliente"?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(delCtx),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () async {
+                        await _db!.delete(
+                          'ordens',
+                          where: 'id = ?',
+                          whereArgs: [id],
+                        );
+                        Navigator.pop(delCtx);
+                        buscar();
+                      },
+                      child: const Text('Sim, Apagar'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return AlertDialog(
               title: const Text('Histórico de Clientes'),
               content: SizedBox(
                 width: double.maxFinite,
-                height: 430,
+                height: 480,
                 child: Column(
                   children: [
                     Row(
@@ -454,24 +512,69 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                                 return Card(
                                   color: isFinalizada ? const Color(0xFF1B4D2E) : const Color(0xFF333333),
                                   margin: const EdgeInsets.symmetric(vertical: 4),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    title: Text(
-                                      'OS N°: $numExibicao | ${r['nome']}',
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                'OS N°: $numExibicao \vert{}${r['nome']}',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap: () => alternarStatus(id, status, r['nome']?.toString() ?? ''),
+                                              child: Icon(
+                                                isFinalizada ? Icons.check_circle : Icons.pending_actions,
+                                                color: isFinalizada ? Colors.greenAccent : Colors.orangeAccent,
+                                                size: 26,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${r['tipo']} | Data: ${r['data']}\nValor:${r['valor']} | Serviços: ${r['servicos']}${obsDb.isNotEmpty ? "\nObs: $obsDb" : ""}\nEstado: $status',
+                                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                        ),
+                                        const Divider(color: Colors.white24),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(0xFF1976D2),
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(ctx);
+                                                _carregarOrdemParaEdicao(r);
+                                              },
+                                              icon: const Icon(Icons.edit, size: 16),
+                                              label: const Text('Continuar / Editar', style: TextStyle(fontSize: 12)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red[800],
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              ),
+                                              onPressed: () => confirmarApagar(id, r['nome']?.toString() ?? ''),
+                                              icon: const Icon(Icons.delete, size: 16),
+                                              label: const Text('Apagar', style: TextStyle(fontSize: 12)),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    subtitle: Text(
-                                      '${r['tipo']} | Data: ${r['data']}\nValor: ${r['valor']} | Serviços: ${r['servicos']}${obsDb.isNotEmpty ? "\nObs: $obsDb" : ""}\nEstado: $status',
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                    ),
-                                    trailing: Icon(
-                                      isFinalizada ? Icons.check_circle : Icons.pending_actions,
-                                      color: isFinalizada ? Colors.greenAccent : Colors.orangeAccent,
-                                      size: 28,
-                                    ),
-                                    onTap: () {
-                                      alternarStatus(id, status, r['nome']?.toString() ?? '');
-                                    },
                                   ),
                                 );
                               },
@@ -485,7 +588,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[700],
+                      backgroundColor: Colors.grey[700],
                     ),
                     onPressed: () => Navigator.pop(ctx),
                     child: const Text('Fechar'),
@@ -652,56 +755,4 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                 ),
               ),
-              const SizedBox(height: 15),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: _gerarOrdem,
-                child: const Text(
-                  'Gerar Ordem e Enviar WhatsApp',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: _abrirTelaNotaServico,
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-                label: const Text(
-                  'Emitir Nota de Serviços (PDF)',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB0B0B0),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: _abrirJanelaBusca,
-                child: const Text(
-                  'Buscar Ordem/Orçamento',
-                  style: TextStyle(fontSize: 15),
-                ),
-              ),
-              const SizedBox(height: 25),
-              const Center(
-                child: Text(
-                  'Desenvolvido por Lysandro Luiz',
-                  style: TextStyle(color: Color(0xFF666666), fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+              const SizedBox(height:
