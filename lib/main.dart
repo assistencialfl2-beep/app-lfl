@@ -626,4 +626,185 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
+              const Center(
+                child: Text(
+                  'LFL - INFORMÁTICA (v0.3.0)',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCCCCCC),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: tipoSelecionado,
+                    isExpanded: true,
+                    style: const TextStyle(color: Colors.black, fontSize: 16),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Ordem de Serviço',
+                        child: Text('Ordem de Serviço'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Orçamento',
+                        child: Text('Orçamento'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          tipoSelecionado = val;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nomeController,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  hintText: 'Nome do Cliente',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE5E5E5),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaServicos,
+                child: Text(
+                  servicosSelecionados.isNotEmpty
+                      ? '${servicosSelecionados.length} serviço(s) selecionado(s)'
+                      : 'Selecionar Serviços',
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _obsController.text.trim().isNotEmpty
+                      ? const Color(0xFF455A64)
+                      : const Color(0xFFE5E5E5),
+                  foregroundColor: _obsController.text.trim().isNotEmpty
+                      ? Colors.white
+                      : Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaObservacoes,
+                icon: const Icon(Icons.note_alt_outlined),
+                label: Text(
+                  _obsController.text.trim().isNotEmpty
+                      ? 'Observações: "${_obsController.text.trim()}"'
+                      : 'Adicionar Observações',
+                  style: const TextStyle(fontSize: 15),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _dataController,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _valorController,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  hintText: 'Valor Total (R\$)',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _telefoneController,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  hintText: 'Telefone (com DDD, sem +)',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _gerarOrdem,
+                child: const Text(
+                  'Gerar Ordem e Enviar WhatsApp',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirTelaNotaServico,
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                label: const Text(
+                  'Emitir Nota de Serviços (PDF)',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB0B0B0),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _abrirJanelaBusca,
+                child: const Text(
+                  'Buscar Ordem/Orçamento',
+                  style: TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 25),
+              const Center(
+                child: Text(
+                  'Desenvolvido por Lysandro Luiz',
+                  style: TextStyle(color: Color(0xFF666666), fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
