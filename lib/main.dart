@@ -285,9 +285,20 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     final data = _dataController.text.trim();
     final valor = _valorController.text.trim();
     final obs = _obsController.text.trim();
+
+    // Mantém no banco de dados SQLite para histórico
     final servicosTexto = servicosSelecionados.isNotEmpty
         ? servicosSelecionados.join(', ')
         : 'Não especificado';
+
+    // Formata em tópicos com cada item e seu valor individual
+    final servicosTopicosComValores = servicosSelecionados.isNotEmpty
+        ? '\n' + servicosSelecionados.map((s) {
+            final preco = opcoesServicos[s] ?? 0.0;
+            final precoFmt = preco.toStringAsFixed(2).replaceAll('.', ',');
+            return '• $s: R\$ $precoFmt';
+          }).join('\n')
+        : ' Não especificado';
 
     if (_db == null) {
       await _iniciarBanco();
@@ -313,13 +324,13 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
       numeroLimpo = '55$numeroLimpo';
     }
 
-    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n📋 *OS N°:* $numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s):* $servicosTexto';
+    String mensagem = 'Olá, *${nome.isEmpty ? "Cliente" : nome}*!\n\nAqui estão os detalhes:\n📋 *OS N°:* $numeroOrdem\n📌 *Tipo:* $tipoSelecionado\n🛠️ *Serviço(s) / Peça(s):*$servicosTopicosComValores';
 
     if (obs.isNotEmpty) {
       mensagem += '\n📝 *Obs:* $obs';
     }
 
-    mensagem += '\n📅 *Data:* $data\n💰 *Valor:* $valor\n\nA LFL - Informática agradece!';
+    mensagem += '\n📅 *Data:* $data\n💰 *Valor Total:* $valor\n\nA LFL - Informática agradece!';
 
     if (tipoSelecionado == 'Ordem de Serviço') {
       mensagem += '\n\n⭐ *Avalie o nosso atendimento:* Sua opinião é muito importante para nós!\ng.page/r/CUrzNhkZxEFAEAE/review';
